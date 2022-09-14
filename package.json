@@ -1,0 +1,20 @@
+{
+  "name": "youtube-cli-downloader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "abdyts": "./abdyts.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "terminal-kit": "^2.11.5",
+    "yargs": "^17.5.1",
+    "ytdl-core": "^4.11.2"
+  }
+}
