@@ -6,5 +6,5 @@ npm i -g
 ```
 ## HOW TO USE
 ```
-abdyts 'youtube vedio link'
+abdyts 'youtube video link'
 ```
