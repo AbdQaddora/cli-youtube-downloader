@@ -14,7 +14,9 @@ npm i -g
 abdyts 'youtube video link'
 ```
 
-## FLAGS
+## FLAGS 
+***Note:** all flags added after the link except help flag*
+
 **Help command** ```--help```
 
 **To download audio only add flag** ```--audio```
