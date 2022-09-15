@@ -13,8 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ffmpeg-static": "^5.1.0",
     "terminal-kit": "^2.11.5",
-    "yargs": "^17.5.1",
     "ytdl-core": "^4.11.2"
   }
 }

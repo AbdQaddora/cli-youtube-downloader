@@ -1,52 +1,15 @@
 #! /usr/bin/env node
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers')
-const ytdl = require('ytdl-core');
+// build in modules 
 const fs = require('fs');
-const path = require('path');
+// external modules
 const term = require('terminal-kit').terminal;
-const { argv } = yargs(hideBin(process.argv));
-const DOWNLOAD_FOLDER = "Cli Downloader"
-const DOWNLOAD_FOLDER_PATH = path.join(process.env.USERPROFILE, 'downloads', DOWNLOAD_FOLDER);
-const notAllowedCharacters = [
-    "#", "<", "$", "+", "%", ">", "!", "`", "&", "*", "'", "|", "{", "?", "\"", "=", "}", "/", ":", "\\", "@"
-]
 
-const createFileName = (name) => {
-    notAllowedCharacters.forEach(charcter => {
-        name = name.replaceAll(charcter, " ");
-    });
-    return name;
-}
+// my modules
+const { download } = require('./download');
 
-const getFullDownloadPath = (fileName) => {
-    try {
-        if (!fs.existsSync(DOWNLOAD_FOLDER_PATH)) {
-            fs.mkdirSync(DOWNLOAD_FOLDER_PATH);
-        }
-        return path.join(DOWNLOAD_FOLDER_PATH, fileName);
-    } catch (err) {
-        console.error(err);
-    }
-}
+const argv = process.argv.slice(2);
 
-const LINK = argv._[0];
-const downloadVideo = async (link) => {
-    const stopTheSpinner = await animation();
-    const videoInfo = await ytdl.getInfo(link);
-    const videoName = `${createFileName(videoInfo.videoDetails.title)}.mp4`;
-    const videoPath = getFullDownloadPath(videoName);
-    try {
-        const outputStream = fs.createWriteStream(videoPath);
-        ytdl(link, { format: 'mp4' }).pipe(outputStream)
-        outputStream.on('close', () => {
-            stopTheSpinner();
-        })
-    } catch (error) {
-        console.log(error);
-    }
-}
-
+// to run an animation in the terminal
 const animation = async () => {
     term.colorRgb(255, 0, 0)
     term("downloading ");
@@ -61,5 +24,13 @@ const animation = async () => {
     return stopTheSpinner;
 }
 
-downloadVideo(LINK);
+const argvAsObject = (argv) => {
+    const argvObject = {}
+    argv.forEach(element => {
+        argvObject[element] = element;
+    });
+    return argvObject;
+}
+// link , argv , the terminal animation
+download(argv[0], argvAsObject(argv.slice(1)), animation);
 
