@@ -15,12 +15,20 @@ abdyts 'youtube video link'
 ```
 
 ## FLAGS
+**Help command** ```--help```
 
-**to download audio only add flag** ```--audio```
-**to customize the video quality add one of the following flags:**
+**To download audio only add flag** ```--audio```
+
+**To customize the video quality add one of the following flags:**
+
 ```--hd1080``` -> 1080p
+
 ```--hd720``` -> 720p
+
 ```--l480``` -> 480p
+
 ```--m360``` -> 360p
+
 ```--s240``` -> 240p
+
 ```--t144``` -> 144p
