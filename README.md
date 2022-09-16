@@ -11,7 +11,7 @@ npm i -g
 ## HOW TO USE
 
 ```
-abdyts 'youtube video link'
+abdyts 'youtube video link' /*optional flag*/
 ```
 
 ## FLAGS 
