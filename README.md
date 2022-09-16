@@ -1,11 +1,8 @@
-# NODE JS CLI YOUTUBE DOWNLOADER
 
-## HOW TO SETUP
-
-clone the project then open it in the terminal
+## HOW TO INSTALL
 
 ```
-npm i -g
+npm i abdyts -g
 ```
 
 ## HOW TO USE
