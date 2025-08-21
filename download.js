@@ -1,94 +1,114 @@
 // node modules
 const fs = require('fs');
-const cp = require('child_process');
-const readline = require('readline');
+const path = require('path');
 
 // external modules
-const ytdl = require('ytdl-core');
-var ffmpeg = require('ffmpeg-static');
+const youtubedl = require('youtube-dl-exec');
 
 const { getFullDownloadPath, TYPES } = require('./downloadPath');
 
 const VIDEO_QUALITIES = {
-    hd1080: 'hd1080',
-    hd720: 'hd720',
-    l480: 'large',
-    m360: 'medium',
-    s240: 'small',
-    t144: 'tiny'
+    hd1080: 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best[ext=mp4]/best',
+    hd720: 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[ext=mp4]/best',
+    l480: 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best[ext=mp4]/best',
+    m360: 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best[ext=mp4]/best',
+    s240: 'bestvideo[height<=240][ext=mp4]+bestaudio[ext=m4a]/best[height<=240][ext=mp4]/best[ext=mp4]/best',
+    t144: 'bestvideo[height<=144][ext=mp4]+bestaudio[ext=m4a]/best[height<=144][ext=mp4]/best[ext=mp4]/best'
 }
 
 const downloadVideo = async (link, animation, quality) => {
     const stopTheSpinner = await animation();
-    const videoInfo = await ytdl.getInfo(link);
-    const videoPath = getFullDownloadPath(videoInfo.videoDetails.title, TYPES.VIDEO);
     try {
-        const video = ytdl(link, {
-            filter: format => {
-                return format.mimeType.includes('video/mp4') && format.quality === quality
+        // Get video info first
+        const videoInfo = await youtubedl(link, {
+            dumpSingleJson: true,
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true
+        });
+        
+        const videoPath = getFullDownloadPath(videoInfo.title, TYPES.VIDEO);
+        
+        // Download with specified quality
+        const downloadProcess = youtubedl.exec(link, {
+            output: videoPath,
+            format: quality,
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true,
+            mergeOutputFormat: 'mp4'
+        });
+        
+        downloadProcess.on('close', (code) => {
+            if (code === 0) {
+                stopTheSpinner();
+            } else {
+                console.error('Download failed with code:', code);
+                stopTheSpinner();
+                process.exit(1);
             }
         });
-        const audio = ytdl(link, {
-            filter: format => {
-                return format.mimeType.includes('audio/webm')
-            }
+        
+        downloadProcess.on('error', (error) => {
+            console.error('Download process error:', error.message);
+            stopTheSpinner();
+            process.exit(1);
         });
-        margeAudioAndVedio(video, audio, videoPath, stopTheSpinner);
+        
     } catch (error) {
-        console.log(error);
+        console.error('Error downloading video:', error.message);
+        stopTheSpinner();
+        process.exit(1);
     }
 }
 
-const margeAudioAndVedio = (video, audio, path, stopTheSpinner) => {
-    const ffmpegProcess = cp.spawn(ffmpeg, [
-        // Remove ffmpeg's console spamming
-        '-loglevel', '8', '-hide_banner',
-        // Set inputs
-        '-i', 'pipe:3',
-        '-i', 'pipe:4',
-        // Map audio & video from streams
-        '-map', '0:a',
-        '-map', '1:v',
-        // Keep encoding
-        '-c:v', 'copy',
-        // Define output file
-        path,
-    ], {
-        windowsHide: true,
-        stdio: [
-            /* Standard: stdin, stdout, stderr */
-            'inherit', 'inherit', 'inherit',
-            /* Custom: pipe:3, pipe:4, */
-            , 'pipe', 'pipe',
-        ],
-    });
 
-    ffmpegProcess.on('close', () => {
-        stopTheSpinner();
-    });
-
-    audio.pipe(ffmpegProcess.stdio[3]);
-    video.pipe(ffmpegProcess.stdio[4]);
-}
 const downloadAudio = async (link, animation) => {
     const stopTheSpinner = await animation();
-    const videoInfo = await ytdl.getInfo(link);
-    const videoPath = getFullDownloadPath(videoInfo.videoDetails.title, TYPES.AUDIO);
     try {
-        const outputStream = fs.createWriteStream(videoPath);
-        ytdl(link, {
-            filter: format => {
-                return format.mimeType.includes('audio/mp4')
+        // Get video info first
+        const videoInfo = await youtubedl(link, {
+            dumpSingleJson: true,
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true
+        });
+        
+        const audioPath = getFullDownloadPath(videoInfo.title, TYPES.AUDIO);
+        
+        // Download audio only
+        const downloadProcess = youtubedl.exec(link, {
+            output: audioPath,
+            extractAudio: true,
+            audioFormat: 'mp3',
+            audioQuality: '0',
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true
+        });
+        
+        downloadProcess.on('close', (code) => {
+            if (code === 0) {
+                stopTheSpinner();
+            } else {
+                console.error('Audio download failed with code:', code);
+                stopTheSpinner();
+                process.exit(1);
             }
-        }).pipe(outputStream);
-        outputStream.on('close', () => {
+        });
+        
+        downloadProcess.on('error', (error) => {
+            console.error('Audio download process error:', error.message);
             stopTheSpinner();
-        })
+            process.exit(1);
+        });
+        
     } catch (error) {
-        console.log(error);
+        console.error('Error downloading audio:', error.message);
+        stopTheSpinner();
+        process.exit(1);
     }
 }
-
 
 const download = (link, argv, animation) => {
     if (argv['--audio']) {
@@ -100,20 +120,75 @@ const download = (link, argv, animation) => {
             console.log(`--${key} -> ${parseInt(key.match(/\d+/)[0])}p `);
         }
     } else {
-        // vedio
+        // video
         let noQualityFlag = true;
+        let qualityToUse = VIDEO_QUALITIES.hd1080;
+        
         for (const key in VIDEO_QUALITIES) {
-            if (argv[`--${key} `]) {
+            if (argv[`--${key}`]) {
                 noQualityFlag = false;
-                downloadVideo(link, animation, VIDEO_QUALITIES[key])
+                qualityToUse = VIDEO_QUALITIES[key];
+                break;
             }
         }
 
-        if (noQualityFlag) {
-            downloadVideo(link, animation, VIDEO_QUALITIES.hd1080)
-        }
+        // Download video with fallback
+        downloadVideoWithFallback(link, animation, qualityToUse);
     }
 }
 
+const downloadVideoWithFallback = async (link, animation, quality) => {
+    try {
+        await downloadVideo(link, animation, quality);
+    } catch (error) {
+        console.log('Primary download method failed, trying fallback...');
+        
+        // Fallback: try to download with best available format
+        try {
+            const stopTheSpinner = await animation();
+            
+            // Get video info first
+            const videoInfo = await youtubedl(link, {
+                dumpSingleJson: true,
+                noCheckCertificates: true,
+                noWarnings: true,
+                preferFreeFormats: true
+            });
+            
+            const videoPath = getFullDownloadPath(videoInfo.title, TYPES.VIDEO);
+            
+            // Download with best available format
+            const downloadProcess = youtubedl.exec(link, {
+                output: videoPath,
+                format: 'best[ext=mp4]/best',
+                noCheckCertificates: true,
+                noWarnings: true,
+                preferFreeFormats: true,
+                mergeOutputFormat: 'mp4'
+            });
+            
+            downloadProcess.on('close', (code) => {
+                if (code === 0) {
+                    stopTheSpinner();
+                } else {
+                    console.error('Fallback download failed with code:', code);
+                    stopTheSpinner();
+                    process.exit(1);
+                }
+            });
+            
+            downloadProcess.on('error', (error) => {
+                console.error('Fallback download process error:', error.message);
+                stopTheSpinner();
+                process.exit(1);
+            });
+            
+        } catch (fallbackError) {
+            console.error('Both primary and fallback methods failed:', fallbackError.message);
+            console.log('This might be due to YouTube restrictions or the video being unavailable.');
+            process.exit(1);
+        }
+    }
+}
 
 module.exports = { download }
